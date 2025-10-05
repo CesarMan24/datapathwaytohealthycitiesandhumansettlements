@@ -3,8 +3,6 @@
 
 import Header from "../Header/Header";
 import { useEffect, useRef, useState } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 
 export default function Hospitales() {
   const mapRef = useRef(null);
@@ -35,20 +33,28 @@ export default function Hospitales() {
 
   // init map (unchanged)
   useEffect(() => {
-    if (!mapRef.current) return;
+    let L;
+    let leafletCssLoaded = false;
+    (async () => {
+      if (!mapRef.current) return;
+      // Dynamically import Leaflet and CSS
+      await import("leaflet/dist/leaflet.css");
+      L = (await import("leaflet")).default;
+      leafletCssLoaded = true;
 
-    const map = L.map(mapRef.current, { center: [20, 0], zoom: 2 });
-    defaultLayerRef.current = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+      const map = L.map(mapRef.current, { center: [20, 0], zoom: 2 });
+      defaultLayerRef.current = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
 
-    mapInstanceRef.current = map;
+      mapInstanceRef.current = map;
 
-    return () => {
-      map.remove();
-      mapInstanceRef.current = null;
-    };
+      return () => {
+        map.remove();
+        mapInstanceRef.current = null;
+      };
+    })();
   }, []);
 
   // layers (unchanged)
@@ -398,10 +404,7 @@ export default function Hospitales() {
               <input type="checkbox" onChange={handlePopulationToggle} />
               <span>GPW Population Density 2020</span>
             </label>
-            <label className="check">
-              <input type="checkbox" onChange={handleUrbanToggle} />
-              <span>Probabilities of Urban Expansion</span>
-            </label>
+           
           </div>
 
           <div className="hint">
@@ -481,6 +484,17 @@ export default function Hospitales() {
           .mapFull { height: 70vh }
           h1 { font-size: 26px }
         }
+
+          /* Move the glass panel a bit lower to avoid zoom controls */
+  .panel { 
+    top: 72px;           /* was 16px */
+  }
+
+  @media (max-width: 820px) {
+    .panel { 
+      top: 88px;         /* a little extra spacing on small screens */
+    }
+  }
       `}</style>
     </>
   );

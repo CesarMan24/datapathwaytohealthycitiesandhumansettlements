@@ -22,8 +22,7 @@ export default function Pollutedareas() {
         "Land Surface Temperature (LST) is how hot the ground surface is, useful for spotting urban heat and heat islands over land.",
       Chlorophyll:
         "Chlorophyll-a is a proxy for phytoplankton biomass. High values can indicate algal blooms that degrade water quality.",
-      CarbonDioxide:
-        "CO₂ Total Column is a monthly average of atmospheric carbon dioxide from OCO-2/GEOS, showing regional patterns and anomalies."
+       
     }),
     []
   );
@@ -84,19 +83,13 @@ export default function Pollutedareas() {
         case "Chlorophyll":
           dataLayerRef.current = L.tileLayer(
             //`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Aqua_Chlorophyll_A/default/${date}/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png`,
-            `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Aqua_L2_Chlorophyll_A/default/${date}/GoogleMapsCompatible_Level7/3/2/3.png`,
-            { maxZoom: 7, opacity: 0.8, zIndex: 710, attribution: "NASA GIBS (Chlorophyll-a)" }
+            `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Aqua_L2_Chlorophyll_A/default/${date}/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png`,
+            { maxZoom: 7, opacity: 0.7, zIndex: 710, attribution: "NASA GIBS (Chlorophyll-a)" }
           ).addTo(map);
           break;
-        case "CarbonDioxide": 
-          if (date) {
-            const monthDate = date.substring(0, 8) + "01";
-            dataLayerRef.current = L.tileLayer(
-              `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/OCO2_GEOS_L3_CO2_Total_Column_Monthly/default/${monthDate}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png`,
-              { maxZoom: 6, opacity: 0.7, zIndex: 710, attribution: "NASA GIBS (CO₂ Monthly)" }
-            ).addTo(map);
-          }
-          break;
+
+         
+        
         default:
           break;
       }
@@ -130,7 +123,7 @@ export default function Pollutedareas() {
       {/* FULL-BLEED MAP */}
       <section className="mapBleed">
         <div className="panel">
-          <form className="form">
+          <form className="form mx-5">
             <label className="check">
               <input
                 type="checkbox"
@@ -159,7 +152,8 @@ export default function Pollutedareas() {
                 <option value="Aerosol">Aerosol (MODIS AOD)</option>
                 <option value="Ground Temperature">Ground Temperature (LST)</option>
                 <option value="Chlorophyll">Chlorophyll-a (Ocean Health)</option>
-                <option value="CarbonDioxide">CO₂ Total Column (Monthly)</option>
+               
+               
               </select>
             </label>
 
@@ -188,11 +182,17 @@ export default function Pollutedareas() {
                   <LegendRow color="#22c55e" label="Moderate" />
                   <LegendRow color="#15803d" label="High (algal blooms)" />
                 </>
-              ) : capa === "CarbonDioxide" ? (
+          ) : capa === "NitrogenDioxide" ? (
                 <>
-                  <LegendRow color="#3b82f6" label="Lower CO₂" />
-                  <LegendRow color="#f59e0b" label="Moderate" />
-                  <LegendRow color="#dc2626" label="Higher CO₂" />
+                  <LegendRow color="#60a5fa" label="Low NO₂" />
+                  <LegendRow color="#f59e0b" label="Moderate pollution" />
+                  <LegendRow color="#dc2626" label="High NO₂ (traffic/industry)" />
+                </>
+              ) : capa === "SulfurDioxide" ? (
+                <>
+                  <LegendRow color="#3b82f6" label="Background SO₂" />
+                  <LegendRow color="#f97316" label="Elevated" />
+                  <LegendRow color="#7c2d12" label="High (volcanic/industrial)" />
                 </>
               ) : (
                 <div className="muted">Select a layer to view its legend.</div>
@@ -278,6 +278,27 @@ export default function Pollutedareas() {
           .mapFull { height: 70vh }
           h1 { font-size: 26px }
         }
+
+          .panel {
+    position: absolute;
+    top: 72px;          /* was 16px — moves the box below the zoom buttons */
+    left: 20px;
+    z-index: 1000;
+    background: rgba(2,6,23,.72);
+    border: 1px solid rgba(148,163,184,.35);
+    color: #e2f3ff;
+    padding: 14px;
+    border-radius: 14px;
+    width: 300px;
+    backdrop-filter: blur(6px);
+  }
+
+  @media (max-width: 820px) {
+    .panel { 
+      top: 88px;       /* give a bit more room on small screens */
+      width: 260px;
+    }
+  }
       `}</style>
     </>
   );
