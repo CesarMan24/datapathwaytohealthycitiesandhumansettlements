@@ -30,9 +30,9 @@ export default function Header() {
         {/* Nav */}
         <nav className="nav">
         <NavLink href="/" active={isActive('/')}>Home</NavLink>
-          <NavLink href="/Pollutedareas" active={isActive('/Pollutedareas')}>Polluted Areas</NavLink>
+          <NavLink href="/Pollutedareas" active={isActive('/Pollutedareas')}>Environmental Problems</NavLink>
           <NavLink href="/Greengap" active={isActive('/Greengap')}>Greenspace</NavLink>
-          <NavLink href="/Hospitales" active={isActive('/Hospitales')}>Hospitals</NavLink>
+          <NavLink href="/Hospitales" active={isActive('/Hospitales')}>Healthcare</NavLink>
           <NavLink href="/About" active={isActive('/About')}>About</NavLink>
         </nav>
       </div>

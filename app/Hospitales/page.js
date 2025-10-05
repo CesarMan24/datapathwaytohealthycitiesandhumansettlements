@@ -1,114 +1,5 @@
 "use client"
-/*import Header from "../Header/Header"
 
-import { useEffect, useRef } from "react"
-
-import { LineChart, Line, CartesianGrid, XAxis, YAxis, Legend, Tooltip } from 'recharts';
-
-
-
-export default function Hospitales(){
-
-
-  const mapRef = useRef(null)
-     useEffect(() => {
-    let map;
-
-    (async () => {
-      if (typeof window === "undefined" || mapRef.current) return;
-
-      // Importa CSS y Leaflet SOLO en cliente
-      await import("leaflet/dist/leaflet.css");
-      const L = await import("leaflet");
-    map = L.map('map').setView([51.505, -0.09], 13);
-
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-}).addTo(map);
-
-
-
-      mapRef.current = map;
-    })();
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []);
-
- <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-     crossorigin=""/>
-
-
-    return(
-        <div className="">
-            <Header/>
-
-
-            <div  id="map" style={{  position: "absolute",
-  top: "20%",
-  left: "30%",
-
-  width: 800,/* Example: Specific width 
-  height: 400,}}
-  
-  
-  
-  />
-  
-
-<div id="card-H" style={{position: "absolute",
-        top: "20%",
-        left: "5%",
-        width: 300,
-        minHeight: 500,
-        background: "#fff",
-        borderRadius: 12,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.1)",
-        padding: 24,
-        zIndex: 1000,
-        display: "flex",
-        flexDirection: "column",
-        }}>
-
- <input
-        type="text"
-        placeholder="Buscar ..."
-        style={{
-            padding: "10px",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            marginBottom: "16px",
-            fontSize: "16px"
-        }}
-    />
-      <label style={{ marginBottom: "8px", display: "flex", alignItems: "center" }}>
-        <input type="checkbox" style={{ marginRight: "8px" }} />
-        Areas sin cobertura
-    </label>
-    <label style={{ marginBottom: "16px", display: "flex", alignItems: "center" }}>
-        <input type="checkbox" style={{ marginRight: "8px" }} />
-        Hospitales Cercanos
-    </label>
-<br/>
-<br/>
-  <label style={{ marginBottom: "16px", alignItems: "center" }}>
-       
-       Distancia de busqueda (km):
-    </label>
-     <input type="range" style={{ marginRight: "8px" }} />
-    
-</div>
-
-        </div>
-        
-    )
-
-}*/
 import Header from "../Header/Header";
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
@@ -118,13 +9,16 @@ export default function Hospitales() {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
 const [busquedaActiva, setBusquedaActiva] = useState(false);
-
+const defaultLayerRef = useRef(null);
+const nasaLayerRef = useRef(null);
   const [hospitalMarkers, setHospitalMarkers] = useState([]);
   const [noCoverageCircles, setNoCoverageCircles] = useState([]);
   const [countriesGeoJSON, setCountriesGeoJSON] = useState(null);
   const [countriesLayer, setCountriesLayer] = useState(null);
   const [selectedCountryId, setSelectedCountryId] = useState(null);
   const [busquedaKm, setBusquedaKm] = useState(100);
+const populationLayerRef = useRef(null);
+const urbanLayerRef = useRef(null);
 
   // control debounce de búsqueda
   const searchTimeoutRef = useRef(null);
@@ -155,39 +49,111 @@ const [busquedaActiva, setBusquedaActiva] = useState(false);
     fillOpacity: 0.45,
   };
 
-  // inicializar el mapa (EPSG:3857 por defecto — compatible con OSM)
-  useEffect(() => {
-    if (!mapRef.current) return;
+ useEffect(() => {
+  if (!mapRef.current) return;
 
-    const map = L.map(mapRef.current, {
-      center: [20, 0],
-      zoom: 2,
-    });
+  const map = L.map(mapRef.current, {
+    center: [20, 0],
+    zoom: 2,
+  });
 
-    // Capa base OpenStreetMap
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  // Capa base OpenStreetMap (default)
+  defaultLayerRef.current = L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+    }
+  ).addTo(map);
 
-    // Capa WMS GHSL (intenta con WMS normal — GeoServer suele soportar EPSG:3857)
-    const ghsl = L.tileLayer.wms(
-      "https://sedac.ciesin.columbia.edu/geoserver/ows",
-      {
-        layers: "ghsl:GHSL_SMOD_R2023A",
-        format: "image/png",
-        transparent: true,
-        attribution: "SEDAC GHSL",
-        // tileSize / other options can be added if es necesario
-      }
+  mapInstanceRef.current = map;
+
+  return () => {
+    map.remove();
+    mapInstanceRef.current = null;
+  };
+}, []);
+
+const addPopulationLayer = (map, date = "2020-10-01") => {
+  populationLayerRef.current = L.tileLayer(
+     "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GPW_Population_Density_2020/default/2020-01-01/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png",
+      { maxZoom: 9, zIndex: 500, attribution: "NASA GIBS" }
+  );
+  populationLayerRef.current.addTo(map);
+};
+
+const addUrbanLayer = (map, date = "2020-10-01") => {
+ urbanLayerRef.current = L.tileLayer(
+     "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Probabilities_of_Urban_Expansion_2000_2030/default/{time}/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png",
+      { maxZoom: 9, zIndex: 500, attribution: "NASA GIBS" }
+  );
+  urbanLayerRef.current.addTo(map);
+};
+
+
+
+const handlePopulationToggle = (e) => {
+  const checked = e.target.checked;
+  const map = mapInstanceRef.current;
+  if (!map) return;
+
+  // Si ya existe, elimínalo
+  if (populationLayerRef.current) {
+    map.removeLayer(populationLayerRef.current);
+  }
+
+  // Si está activado, agregarlo
+  if (checked) {
+    addPopulationLayer(map, "2020-10-01");
+  }
+};
+
+
+const handleUrbanToggle = (e) => {
+  const checked = e.target.checked;
+  const map = mapInstanceRef.current;
+  if (!map) return;
+
+  // Si ya existe, elimínalo
+  if (urbanLayerRef.current) {
+    map.removeLayer(urbanLayerRef.current);
+  }
+
+  // Si está activado, agregarlo
+  if (checked) {
+    addUrbanLayer(map, "2020-10-01");
+  }
+};
+
+
+const handleLayerToggle = (e) => {
+  const useNasa = e.target.checked;
+  const map = mapInstanceRef.current;
+  if (!map) return;
+
+  // Quitar capa default si existe
+  if (defaultLayerRef.current) {
+    map.removeLayer(defaultLayerRef.current);
+  }
+
+  // Quitar capa NASA si existe
+  if (nasaLayerRef.current) {
+    map.removeLayer(nasaLayerRef.current);
+  }
+
+  if (useNasa) {
+    // Agregar capa NASA
+    nasaLayerRef.current = L.tileLayer(
+      "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2025-10-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png",
+      { maxZoom: 9, zIndex: 500, attribution: "NASA GIBS" }
     ).addTo(map);
+  } else {
+    // Restaurar OSM
+    defaultLayerRef.current.addTo(map);
+  }
+};
 
-    mapInstanceRef.current = map;
-    return () => {
-      map.remove();
-      mapInstanceRef.current = null;
-    };
-  }, []);
+
 
   // fetch del GeoJSON de países y render
   useEffect(() => {
@@ -537,7 +503,11 @@ var Hicon = L.icon({
           height: 600,
         }}
       />
-
+  <div>
+        <h1 className="text-4xl text-center">
+         Where do new healthcare facilities need to be set up?
+        </h1>
+      </div>
       <div
         id="card-H"
         style={{
@@ -555,6 +525,16 @@ var Hicon = L.icon({
           flexDirection: "column",
         }}
       >
+        <label style={{ marginBottom: "12px", display: "flex", alignItems: "center" }}>
+  <input
+    type="checkbox"
+    style={{ marginRight: "8px" }}
+    onChange={handleLayerToggle}
+  />
+ Mapa Realista
+</label>
+
+
         <input
           type="text"
           placeholder="Buscar país (ej. México, Brazil, France)..."
@@ -588,6 +568,17 @@ var Hicon = L.icon({
 />
           Hospitales Cercanos
         </label>
+
+<label style={{ marginBottom: "8px", display: "flex", alignItems: "center" }}>
+  <input
+    type="checkbox"
+    style={{ marginRight: "8px" }}
+    onChange={handlePopulationToggle}
+  />
+  Capa GPW Population Density 2020
+</label>
+
+
 
         <label style={{ marginBottom: "8px", alignItems: "center" }}>
           Distancia de búsqueda (km):
