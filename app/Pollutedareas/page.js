@@ -11,7 +11,12 @@ export default function Pollutedareas() {
 
   const [realista, setrealista] = useState(false);
   const [capa, setcapa] = useState("");
-  const [date, setdate] = useState("");
+   const getMaxDate = () => {
+    const today = new Date();
+    today.setDate(today.getDate() - 2);
+    return today.toISOString().split("T")[0];
+  };
+  const [date, setdate] = useState(getMaxDate());
 
   // Descriptions (shown in panel under LEGEND)
   const DESCRIPTIONS = useMemo(
@@ -96,11 +101,11 @@ export default function Pollutedareas() {
     })();
   }, [realista, capa, date]);
 
-  const getMaxDate = () => {
-    const today = new Date();
-    today.setDate(today.getDate() - 2);
-    return today.toISOString().split("T")[0];
-  };
+  // const getMaxDate = () => {
+  //   const today = new Date();
+  //   today.setDate(today.getDate() - 2);
+  //   return today.toISOString().split("T")[0];
+  // };
 
   return (
     <>

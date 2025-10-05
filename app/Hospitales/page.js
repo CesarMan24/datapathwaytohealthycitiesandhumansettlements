@@ -106,12 +106,16 @@ export default function Hospitales() {
     } else {
       defaultLayerRef.current.addTo(map);
     }
+    
   };
 
-  // countries load (unchanged)
+  // countries load (fixed for SSR)
   useEffect(() => {
+    let L;
     const loadCountries = async () => {
       try {
+        // Dynamically import Leaflet only on client
+        L = (await import("leaflet")).default;
         const res = await fetch(COUNTRIES_GEOJSON_URL);
         const geo = await res.json();
         setCountriesGeoJSON(geo);

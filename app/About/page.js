@@ -52,8 +52,8 @@ export default function AboutPage() {
           <h2 className="h2">Team</h2>
           <div className="grid">
             <Member name="Andre Acero"    role="Data & Frontend" />
-            <Member name="Jose Luis Chacon" role="UX & Product" />
-            <Member name="Cesar Aguirre"  role="IT Support" />
+            <Member name="Jose Luis Chacon" role="UX & UI" />
+            <Member name="Cesar Aguirre"  role="QA" />
             <Member name="Jose Melesio"   role="Backend & Integrations" />
           </div>
         </div>
