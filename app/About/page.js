@@ -107,11 +107,7 @@ export default function AboutPage() {
             the teams behind GIBS, Sentinel-2, WorldPop, SEDAC, and OpenStreetMap.
           </p>
 
-          <div className="contact">
-            <a className="btn" href="/"          >Back to Home</a>
-            <a className="btn sky" href="/Greengap">Open Greengap</a>
-            <a className="btn emerald" href="/Calor">Open Heat</a>
-          </div>
+         
         </div>
       </section>
 

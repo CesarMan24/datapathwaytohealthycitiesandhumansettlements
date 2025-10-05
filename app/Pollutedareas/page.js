@@ -83,11 +83,12 @@ export default function Pollutedareas() {
           break;
         case "Chlorophyll":
           dataLayerRef.current = L.tileLayer(
-            `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Aqua_Chlorophyll_A/default/${date}/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png`,
+            //`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Aqua_Chlorophyll_A/default/${date}/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png`,
+            `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Aqua_L2_Chlorophyll_A/default/${date}/GoogleMapsCompatible_Level7/3/2/3.png`,
             { maxZoom: 7, opacity: 0.8, zIndex: 710, attribution: "NASA GIBS (Chlorophyll-a)" }
           ).addTo(map);
           break;
-        case "CarbonDioxide":
+        case "CarbonDioxide": 
           if (date) {
             const monthDate = date.substring(0, 8) + "01";
             dataLayerRef.current = L.tileLayer(

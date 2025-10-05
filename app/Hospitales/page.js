@@ -1,4 +1,5 @@
-"use client"
+// app/Hospitales/page.js
+"use client";
 
 import Header from "../Header/Header";
 import { useEffect, useRef, useState } from "react";
@@ -8,154 +9,100 @@ import "leaflet/dist/leaflet.css";
 export default function Hospitales() {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-const [busquedaActiva, setBusquedaActiva] = useState(false);
-const defaultLayerRef = useRef(null);
-const nasaLayerRef = useRef(null);
+  const [busquedaActiva, setBusquedaActiva] = useState(false);
+
+  const defaultLayerRef = useRef(null);
+  const nasaLayerRef = useRef(null);
+  const populationLayerRef = useRef(null);
+  const urbanLayerRef = useRef(null);
+
   const [hospitalMarkers, setHospitalMarkers] = useState([]);
   const [noCoverageCircles, setNoCoverageCircles] = useState([]);
   const [countriesGeoJSON, setCountriesGeoJSON] = useState(null);
   const [countriesLayer, setCountriesLayer] = useState(null);
   const [selectedCountryId, setSelectedCountryId] = useState(null);
   const [busquedaKm, setBusquedaKm] = useState(100);
-const populationLayerRef = useRef(null);
-const urbanLayerRef = useRef(null);
 
-  // control debounce de búsqueda
   const searchTimeoutRef = useRef(null);
 
-  // URL pública ligera (opción 1)
   const COUNTRIES_GEOJSON_URL =
     "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
 
-  // estilos
-  const baseCountryStyle = {
-    color: "#aaa",
-    weight: 1,
-    fillColor: "#ececec",
-    fillOpacity: 0.5,
-  };
+  // styles (unchanged)
+  const baseCountryStyle = { color: "#aaa", weight: 1, fillColor: "#ececec", fillOpacity: 0.5 };
+  const selectedStyle = { color: "#000", weight: 2, fillColor: "#FFEB3B", fillOpacity: 0.6 };
+  const neighborStyle = { color: "#555", weight: 1.5, fillColor: "#FEB24C", fillOpacity: 0.45 };
 
-  const selectedStyle = {
-    color: "#000", // borde negro
-    weight: 2,
-    fillColor: "#FFEB3B", // amarillo
-    fillOpacity: 0.6,
-  };
+  // init map (unchanged)
+  useEffect(() => {
+    if (!mapRef.current) return;
 
-  const neighborStyle = {
-    color: "#555",
-    weight: 1.5,
-    fillColor: "#FEB24C", // naranja claro para vecinos
-    fillOpacity: 0.45,
-  };
-
- useEffect(() => {
-  if (!mapRef.current) return;
-
-  const map = L.map(mapRef.current, {
-    center: [20, 0],
-    zoom: 2,
-  });
-
-  // Capa base OpenStreetMap (default)
-  defaultLayerRef.current = L.tileLayer(
-    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    {
+    const map = L.map(mapRef.current, { center: [20, 0], zoom: 2 });
+    defaultLayerRef.current = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }
-  ).addTo(map);
+    }).addTo(map);
 
-  mapInstanceRef.current = map;
+    mapInstanceRef.current = map;
 
-  return () => {
-    map.remove();
-    mapInstanceRef.current = null;
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+    };
+  }, []);
+
+  // layers (unchanged)
+  const addPopulationLayer = (map, date = "2020-10-01") => {
+    populationLayerRef.current = L.tileLayer(
+      "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GPW_Population_Density_2020/default/2020-01-01/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png",
+      { maxZoom: 9, zIndex: 500, attribution: "NASA GIBS" }
+    );
+    populationLayerRef.current.addTo(map);
   };
-}, []);
 
-const addPopulationLayer = (map, date = "2020-10-01") => {
-  populationLayerRef.current = L.tileLayer(
-     "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GPW_Population_Density_2020/default/2020-01-01/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png",
+  const addUrbanLayer = (map, date = "2020-10-01") => {
+    urbanLayerRef.current = L.tileLayer(
+      "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Probabilities_of_Urban_Expansion_2000_2030/default/{time}/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png",
       { maxZoom: 9, zIndex: 500, attribution: "NASA GIBS" }
-  );
-  populationLayerRef.current.addTo(map);
-};
+    );
+    urbanLayerRef.current.addTo(map);
+  };
 
-const addUrbanLayer = (map, date = "2020-10-01") => {
- urbanLayerRef.current = L.tileLayer(
-     "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Probabilities_of_Urban_Expansion_2000_2030/default/{time}/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png",
-      { maxZoom: 9, zIndex: 500, attribution: "NASA GIBS" }
-  );
-  urbanLayerRef.current.addTo(map);
-};
+  const handlePopulationToggle = (e) => {
+    const checked = e.target.checked;
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (populationLayerRef.current) map.removeLayer(populationLayerRef.current);
+    if (checked) addPopulationLayer(map, "2020-10-01");
+  };
 
+  const handleUrbanToggle = (e) => {
+    const checked = e.target.checked;
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (urbanLayerRef.current) map.removeLayer(urbanLayerRef.current);
+    if (checked) addUrbanLayer(map, "2020-10-01");
+  };
 
+  const handleLayerToggle = (e) => {
+    const useNasa = e.target.checked;
+    const map = mapInstanceRef.current;
+    if (!map) return;
 
-const handlePopulationToggle = (e) => {
-  const checked = e.target.checked;
-  const map = mapInstanceRef.current;
-  if (!map) return;
+    if (defaultLayerRef.current) map.removeLayer(defaultLayerRef.current);
+    if (nasaLayerRef.current) map.removeLayer(nasaLayerRef.current);
 
-  // Si ya existe, elimínalo
-  if (populationLayerRef.current) {
-    map.removeLayer(populationLayerRef.current);
-  }
+    if (useNasa) {
+      nasaLayerRef.current = L.tileLayer(
+        "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2025-10-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png",
+        { maxZoom: 9, zIndex: 500, attribution: "NASA GIBS" }
+      ).addTo(map);
+    } else {
+      defaultLayerRef.current.addTo(map);
+    }
+  };
 
-  // Si está activado, agregarlo
-  if (checked) {
-    addPopulationLayer(map, "2020-10-01");
-  }
-};
-
-
-const handleUrbanToggle = (e) => {
-  const checked = e.target.checked;
-  const map = mapInstanceRef.current;
-  if (!map) return;
-
-  // Si ya existe, elimínalo
-  if (urbanLayerRef.current) {
-    map.removeLayer(urbanLayerRef.current);
-  }
-
-  // Si está activado, agregarlo
-  if (checked) {
-    addUrbanLayer(map, "2020-10-01");
-  }
-};
-
-
-const handleLayerToggle = (e) => {
-  const useNasa = e.target.checked;
-  const map = mapInstanceRef.current;
-  if (!map) return;
-
-  // Quitar capa default si existe
-  if (defaultLayerRef.current) {
-    map.removeLayer(defaultLayerRef.current);
-  }
-
-  // Quitar capa NASA si existe
-  if (nasaLayerRef.current) {
-    map.removeLayer(nasaLayerRef.current);
-  }
-
-  if (useNasa) {
-    // Agregar capa NASA
-    nasaLayerRef.current = L.tileLayer(
-      "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2025-10-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png",
-      { maxZoom: 9, zIndex: 500, attribution: "NASA GIBS" }
-    ).addTo(map);
-  } else {
-    // Restaurar OSM
-    defaultLayerRef.current.addTo(map);
-  }
-};
-
-
-
-  // fetch del GeoJSON de países y render
+  // countries load (unchanged)
   useEffect(() => {
     const loadCountries = async () => {
       try {
@@ -163,7 +110,6 @@ const handleLayerToggle = (e) => {
         const geo = await res.json();
         setCountriesGeoJSON(geo);
 
-        // crear capa GeoJSON
         const layer = L.geoJSON(geo, {
           style: baseCountryStyle,
           onEachFeature: (feature, layer) => {
@@ -186,58 +132,31 @@ const handleLayerToggle = (e) => {
     };
 
     loadCountries();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // eslint-disable-line
 
-  // helpers para comparar / detectar vecinos
-  // A: obtiene todos los pares [lat, lng] del feature (acomoda MultiPolygon / Polygon)
+  // helpers (unchanged)
   const collectCoordsPairs = (feature) => {
     const pairs = [];
     const geom = feature.geometry;
     if (!geom) return pairs;
-
-    const pushPair = (lon, lat) => {
-      // redondeo para evitar float noise
-      const key = `${lat.toFixed(6)},${lon.toFixed(6)}`;
-      pairs.push(key);
-    };
-
+    const pushPair = (lon, lat) => pairs.push(`${lat.toFixed(6)},${lon.toFixed(6)}`);
     if (geom.type === "Polygon") {
-      for (const ring of geom.coordinates) {
-        for (const coord of ring) {
-          pushPair(coord[0], coord[1]);
-        }
-      }
+      for (const ring of geom.coordinates) for (const c of ring) pushPair(c[0], c[1]);
     } else if (geom.type === "MultiPolygon") {
-      for (const poly of geom.coordinates) {
-        for (const ring of poly) {
-          for (const coord of ring) {
-            pushPair(coord[0], coord[1]);
-          }
-        }
-      }
+      for (const poly of geom.coordinates) for (const ring of poly) for (const c of ring) pushPair(c[0], c[1]);
     }
     return pairs;
   };
-
-  // detecta si comparten vértice exacto (con tolerancia por redondeo)
   const hasSharedVertex = (featA, featB) => {
-    const aPairs = collectCoordsPairs(featA);
-    const setA = new Set(aPairs);
+    const setA = new Set(collectCoordsPairs(featA));
     const bPairs = collectCoordsPairs(featB);
-    for (const p of bPairs) {
-      if (setA.has(p)) return true;
-    }
+    for (const p of bPairs) if (setA.has(p)) return true;
     return false;
   };
-
-  // buscar país por nombre (case-insensitive). Retorna feature y su layer si existe
   const findCountryFeature = (query) => {
     if (!countriesGeoJSON) return null;
     const q = query.trim().toLowerCase();
     if (!q) return null;
-
-    // buscar por varios campos comunes
     for (const feature of countriesGeoJSON.features) {
       const candidates = [
         feature.properties.ADMIN,
@@ -248,102 +167,54 @@ const handleLayerToggle = (e) => {
       ];
       for (const val of candidates) {
         if (!val) continue;
-        if (String(val).toLowerCase().indexOf(q) !== -1) {
-          return feature;
-        }
+        if (String(val).toLowerCase().indexOf(q) !== -1) return feature;
       }
     }
     return null;
   };
 
-  // cuando se selecciona un país: resaltar y mostrar vecinos
   const highlightCountryAndNeighbors = (feature) => {
     setBusquedaActiva(true);
     if (!countriesLayer || !mapInstanceRef.current) return;
 
-    // Reset estilos previos
-    countriesLayer.resetStyle?.(); // la función existe en Leaflet GeoJSON layer
-
-    // quitar cualquier layer temporal anterior (si es que añadimos popups o similares)
+    countriesLayer.resetStyle?.();
     setSelectedCountryId(null);
 
-    // encontrar layers individuales (cada layer tiene .feature)
     const allLayers = [];
-    countriesLayer.eachLayer((lyr) => {
-      if (lyr.feature) allLayers.push(lyr);
-    });
+    countriesLayer.eachLayer((lyr) => lyr.feature && allLayers.push(lyr));
 
-    // encontrar la capa del feature seleccionado comparando por ISO_A3 u otro identificador
-    // Preferimos comparar por geometría (JSON string) si no hay id único
     let targetLayer = null;
     for (const lyr of allLayers) {
-      try {
-        // comparar por ISO_A3 si existe
-        const a = lyr.feature.properties.ISO_A3 || lyr.feature.properties.ISO3 || lyr.feature.properties.ADM0_A3;
-        const b = feature.properties.ISO_A3 || feature.properties.ISO3 || feature.properties.ADM0_A3;
-        if (a && b && a === b) {
-          targetLayer = lyr;
-          break;
-        }
-      } catch (e) {}
+      const a = lyr.feature.properties.ISO_A3 || lyr.feature.properties.ISO3 || lyr.feature.properties.ADM0_A3;
+      const b = feature.properties.ISO_A3 || feature.properties.ISO3 || feature.properties.ADM0_A3;
+      if (a && b && a === b) { targetLayer = lyr; break; }
     }
-    // si no lo encontró por código, comparar por nombre exacto (ADMIN)
     if (!targetLayer) {
-      const nameToFind =
-        feature.properties.ADMIN ||
-        feature.properties.NAME ||
-        feature.properties.name;
+      const nameToFind = feature.properties.ADMIN || feature.properties.NAME || feature.properties.name;
       for (const lyr of allLayers) {
-        const n =
-          lyr.feature.properties.ADMIN ||
-          lyr.feature.properties.NAME ||
-          lyr.feature.properties.name;
-        if (n && nameToFind && n === nameToFind) {
-          targetLayer = lyr;
-          break;
-        }
+        const n = lyr.feature.properties.ADMIN || lyr.feature.properties.NAME || lyr.feature.properties.name;
+        if (n && nameToFind && n === nameToFind) { targetLayer = lyr; break; }
       }
     }
-
-    // como fallback comparar geometría (puede ser costoso pero es fallback)
     if (!targetLayer) {
       const fGeomStr = JSON.stringify(feature.geometry);
-      for (const lyr of allLayers) {
-        if (JSON.stringify(lyr.feature.geometry) === fGeomStr) {
-          targetLayer = lyr;
-          break;
-        }
-      }
+      for (const lyr of allLayers) if (JSON.stringify(lyr.feature.geometry) === fGeomStr) { targetLayer = lyr; break; }
     }
+    if (!targetLayer) return;
 
-    if (!targetLayer) {
-      console.warn("No se encontró la capa del país seleccionado en el layer.");
-      return;
-    }
-
-    // Aplicar estilo al país seleccionado
     targetLayer.setStyle(selectedStyle);
     mapInstanceRef.current.fitBounds(targetLayer.getBounds(), { padding: [20, 20] });
 
-    // identificar vecinos: comprobamos intersección por bbox y luego vértices compartidos
     const neighbors = [];
     const selBounds = targetLayer.getBounds();
-
     for (const lyr of allLayers) {
       if (lyr === targetLayer) continue;
       const b = lyr.getBounds();
-      if (!selBounds.intersects(b)) continue; // si no intersectan los bounding boxes, no son vecinos
-
-      // si intersectan bbox, comprobamos si comparten vértice exacto
-      if (hasSharedVertex(targetLayer.feature, lyr.feature)) {
-        neighbors.push(lyr);
-      }
+      if (!selBounds.intersects(b)) continue;
+      if (hasSharedVertex(targetLayer.feature, lyr.feature)) neighbors.push(lyr);
     }
-
-    // aplicar estilo a vecinos
     neighbors.forEach((n) => n.setStyle(neighborStyle));
 
-    // guardar selected id para poder resetear si se desea
     setSelectedCountryId(
       feature.properties.ISO_A3 ||
         feature.properties.ISO3 ||
@@ -354,76 +225,55 @@ const handleLayerToggle = (e) => {
     );
   };
 
-  // función de búsqueda llamada por el input (debounce)
   const handleSearchInput = (raw) => {
-    // limpiar debounce previo
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-
-    // si el usuario presiona Enter, buscamos inmediatamente (raw será entrada del input)
     searchTimeoutRef.current = setTimeout(() => {
       const query = raw.trim();
       if (!query || !countriesGeoJSON) return;
-
       const found = findCountryFeature(query);
-      if (!found) {
-        console.warn("No se encontró país con:", query);
-        return;
-      }
-      highlightCountryAndNeighbors(found);
-    }, 500); // 500ms debounce
+      if (found) highlightCountryAndNeighbors(found);
+    }, 500);
   };
 
-  // manejo de enter en input: búsqueda inmediata
   const handleSearchKeyDown = (e) => {
     if (e.key === "Enter") {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
       const query = e.target.value.trim();
       if (!query) return;
       const found = findCountryFeature(query);
-      if (!found) {
-        console.warn("No se encontró país con:", query);
-        return;
-      }
-      highlightCountryAndNeighbors(found);
+      if (found) highlightCountryAndNeighbors(found);
     }
   };
 
-  // -------------------- Manejo de hospitales --------------------
+  // hospitals (unchanged)
   const handleHospitalsToggle = async (e) => {
     const checked = e.target.checked;
     if (!checked) {
-      hospitalMarkers.forEach((marker) => marker.remove());
+      hospitalMarkers.forEach((m) => m.remove());
       setHospitalMarkers([]);
       return;
     }
-
     const map = mapInstanceRef.current;
     if (!map) return;
 
     const bounds = map.getBounds();
-    const south = bounds.getSouth();
-    const north = bounds.getNorth();
-    const west = bounds.getWest();
-    const east = bounds.getEast();
-
-    const url = `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="hospital"](${south},${west},${north},${east});out;`;
+    const url = `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="hospital"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`;
 
     try {
       const response = await fetch(url);
       const data = await response.json();
 
-var Hicon = L.icon({
-    iconUrl: 'https://t4.ftcdn.net/jpg/01/69/76/45/360_F_169764523_7ysH07dmxLZmN0yHcZFWwrFXrxWckEMh.jpg',
-    iconSize: [25, 25], // size of the icon
-    iconAnchor: [12, 12], // point of the icon which will correspond to marker's location
-    popupAnchor: [0, -10] // point from which the popup should open relative to the iconAnchor
-});
+      const Hicon = L.icon({
+        iconUrl:
+          "https://t4.ftcdn.net/jpg/01/69/76/45/360_F_169764523_7ysH07dmxLZmN0yHcZFWwrFXrxWckEMh.jpg",
+        iconSize: [25, 25],
+        iconAnchor: [12, 12],
+        popupAnchor: [0, -10],
+      });
 
-      const markers = data.elements.map((el) => {
-        // verificar lat lon
-        if (!el.lat || !el.lon) return null;
-        return L.marker([el.lat, el.lon],{icon:Hicon} ).addTo(map);
-      }).filter(Boolean);
+      const markers = data.elements
+        .map((el) => (el.lat && el.lon ? L.marker([el.lat, el.lon], { icon: Hicon }).addTo(map) : null))
+        .filter(Boolean);
 
       setHospitalMarkers(markers);
     } catch (err) {
@@ -431,46 +281,35 @@ var Hicon = L.icon({
     }
   };
 
-  // -------------------- Áreas sin cobertura --------------------
+  // no coverage (unchanged)
   const handleNoCoverageToggle = async (e) => {
     const checked = e.target.checked;
-
     if (!checked) {
-      noCoverageCircles.forEach((circle) => circle.remove());
+      noCoverageCircles.forEach((c) => c.remove());
       setNoCoverageCircles([]);
       return;
     }
-
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    const bounds = map.getBounds();
-    const south = bounds.getSouth();
-    const north = bounds.getNorth();
-    const west = bounds.getWest();
-    const east = bounds.getEast();
-
+    const b = map.getBounds();
     const radioKm = parseInt(busquedaKm);
 
     const puntos = [
-      [(north + south) / 2, (west + east) / 2],
-      [north, west],
-      [north, east],
-      [south, west],
-      [south, east],
+      [(b.getNorth() + b.getSouth()) / 2, (b.getWest() + b.getEast()) / 2],
+      [b.getNorth(), b.getWest()],
+      [b.getNorth(), b.getEast()],
+      [b.getSouth(), b.getWest()],
+      [b.getSouth(), b.getEast()],
     ];
 
     const circles = [];
-
     for (const [lat, lon] of puntos) {
-      const url = `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="hospital"](around:${
-        radioKm * 1000
-      },${lat},${lon});out;`;
-
+      const url = `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="hospital"](around:${radioKm *
+        1000},${lat},${lon});out;`;
       try {
         const res = await fetch(url);
         const data = await res.json();
-
         if (!data.elements || data.elements.length === 0) {
           const circle = L.circle([lat, lon], {
             radius: radioKm * 1000,
@@ -484,115 +323,165 @@ var Hicon = L.icon({
         console.error("Error consultando área sin cobertura:", err);
       }
     }
-
     setNoCoverageCircles(circles);
   };
 
   return (
-    <div>
+    <>
       <Header />
 
-      <div
-        id="map"
-        ref={mapRef}
-        style={{
-          position: "absolute",
-          top: "20%",
-          left: "30%",
-          width: 900,
-          height: 600,
-        }}
-      />
-  <div>
-        <h1 className="text-4xl text-center">
-         Where do new healthcare facilities need to be set up?
-        </h1>
-      </div>
-      <div
-        id="card-H"
-        style={{
-          position: "absolute",
-          top: "20%",
-          left: "5%",
-          width: 320,
-          minHeight: 260,
-          background: "#fff",
-          borderRadius: 12,
-          boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
-          padding: 18,
-          zIndex: 1000,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <label style={{ marginBottom: "12px", display: "flex", alignItems: "center" }}>
-  <input
-    type="checkbox"
-    style={{ marginRight: "8px" }}
-    onChange={handleLayerToggle}
-  />
- Mapa Realista
-</label>
+      {/* HERO */}
+      <section className="hero">
+        <div className="heroWrap">
+          <div className="titles">
+            <span className="badge">Healthcare</span>
+            <h1>Where do new healthcare facilities need to be set up?</h1>
+            <p>
+              Search a country, see neighbors, overlay hospitals and population density, and find
+              areas potentially lacking coverage within a chosen search radius.
+            </p>
+          </div>
+        </div>
+      </section>
 
+      {/* FULL-BLEED MAP */}
+      <section className="mapBleed">
+        {/* Control panel — same controls, nicer UI */}
+        <div className="panel">
+          <div className="group">
+            <label className="check">
+              <input type="checkbox" onChange={handleLayerToggle} />
+              <span>NASA True Color basemap</span>
+            </label>
+          </div>
 
-        <input
-          type="text"
-          placeholder="Buscar país (ej. México, Brazil, France)..."
-          onChange={(e) => handleSearchInput(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          style={{
-            padding: "10px",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            marginBottom: "12px",
-            fontSize: "14px",
-          }}
-        />
+          <div className="group">
+            <label className="field">
+              <span>Search country</span>
+              <input
+                type="text"
+                placeholder="e.g., México, Brazil, France…"
+                onChange={(e) => handleSearchInput(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+              />
+            </label>
+          </div>
 
-        <label style={{ marginBottom: "8px", display: "flex", alignItems: "center" }}>
-          <input
-  type="checkbox"
-  style={{ marginRight: "8px" }}
-  onChange={handleNoCoverageToggle}
-  disabled={!busquedaActiva}
-/>
-          Áreas sin cobertura
-        </label>
+            <div className="inlineChecks">
+              <label className={`check ${!busquedaActiva ? "disabled" : ""}`}>
+                <input type="checkbox" onChange={handleNoCoverageToggle} disabled={!busquedaActiva} />
+                <span>No-coverage areas</span>
+              </label>
+              <label className={`check ${!busquedaActiva ? "disabled" : ""}`}>
+                <input type="checkbox" onChange={handleHospitalsToggle} disabled={!busquedaActiva} />
+                <span>Nearby hospitals</span>
+              </label>
+            </div>
 
-        <label style={{ marginBottom: "12px", display: "flex", alignItems: "center" }}>
-         <input
-  type="checkbox"
-  style={{ marginRight: "8px" }}
-  onChange={handleHospitalsToggle}
-  disabled={!busquedaActiva}
-/>
-          Hospitales Cercanos
-        </label>
+          <div className="group">
+            <label className="field">
+              <span>Search radius (km)</span>
+              <input
+                type="range"
+                min="10"
+                max="300"
+                value={busquedaKm}
+                onChange={(e) => setBusquedaKm(e.target.value)}
+              />
+              <div className="rangeVal">{busquedaKm} km</div>
+            </label>
+          </div>
 
-<label style={{ marginBottom: "8px", display: "flex", alignItems: "center" }}>
-  <input
-    type="checkbox"
-    style={{ marginRight: "8px" }}
-    onChange={handlePopulationToggle}
-  />
-  Capa GPW Population Density 2020
-</label>
+          <div className="group">
+            <div className="subhead">Overlays</div>
+            <label className="check">
+              <input type="checkbox" onChange={handlePopulationToggle} />
+              <span>GPW Population Density 2020</span>
+            </label>
+            <label className="check">
+              <input type="checkbox" onChange={handleUrbanToggle} />
+              <span>Probabilities of Urban Expansion</span>
+            </label>
+          </div>
 
+          <div className="hint">
+            Tip: Run a country search first to enable “No-coverage” and “Hospitals” tools.
+          </div>
+        </div>
 
+        {/* Map container (same ref & behavior) */}
+        <div id="map" ref={mapRef} className="mapFull" />
+      </section>
 
-        <label style={{ marginBottom: "8px", alignItems: "center" }}>
-          Distancia de búsqueda (km):
-        </label>
-        <input
-          type="range"
-          min="10"
-          max="300"
-          value={busquedaKm}
-          onChange={(e) => setBusquedaKm(e.target.value)}
-          style={{ marginBottom: "8px" }}
-        />
-        <span style={{ fontSize: 13 }}>{busquedaKm} km</span>
-      </div>
-    </div>
+      <style jsx>{`
+        :global(.leaflet-container) { background: #0b1220; }
+        :global(.leaflet-control-attribution) { font-size: 11px; }
+
+        .hero {
+          background:
+            radial-gradient(1200px 400px at 50% -80px, rgba(56,189,248,.25), transparent 60%),
+            linear-gradient(180deg, #020617, #071827 40%, #0b1722 100%);
+          color: #e6f6ff; border-bottom: 1px solid rgba(148,163,184,.2);
+        }
+        .heroWrap {
+          max-width: 1100px; margin: 0 auto; padding: 32px 16px;
+        }
+        .badge {
+          display: inline-block; padding: 4px 10px; border-radius: 999px;
+          background: #0ea5e980; color: #04283b; font-size: 12px; font-weight: 800;
+          border: 1px solid #7dd3fc;
+        }
+        h1 { margin: 8px 0 6px; font-size: 32px; line-height: 1.2 }
+        .hero p { margin: 0; opacity: .95; max-width: 70ch }
+
+        /* Full-bleed map */
+        .mapBleed {
+          position: relative;
+          width: 100vw;
+          margin-left: 50%;
+          transform: translateX(-50%);
+          background: #020617;
+        }
+        .mapFull {
+          height: min(84vh, 900px);
+          width: 100%;
+        }
+
+        /* Glass control panel */
+        .panel {
+          position: absolute; top: 16px; left: 20px; z-index: 1000;
+          background: rgba(2,6,23,.72);
+          border: 1px solid rgba(148,163,184,.35);
+          color: #e2f3ff;
+          padding: 14px; border-radius: 14px; width: 320px;
+          backdrop-filter: blur(6px);
+          box-shadow: 0 10px 28px rgba(2,6,23,.45);
+        }
+        .group { display: grid; gap: 10px; margin-bottom: 10px }
+        .subhead { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; opacity: .85 }
+
+        .check { display: flex; align-items: center; gap: 8px; font-size: 14px }
+        .check input { accent-color: #0ea5e9 }
+        .check.disabled { opacity: .6 }
+
+        .inlineChecks { display: grid; gap: 6px; margin-bottom: 10px }
+
+        .field { display: grid; gap: 6px; font-size: 13px }
+        .field input[type="text"] {
+          background: rgba(255,255,255,.96); color: #0f172a; border: 1px solid #cbd5e1;
+          border-radius: 8px; padding: 8px; font-size: 14px;
+        }
+        .field input[type="range"] { width: 100% }
+        .rangeVal { font-size: 12px; color: #cfefff; }
+
+        .hint { font-size: 12px; color: #cfefff; opacity: .9; margin-top: 2px }
+
+        @media (max-width: 820px) {
+          .panel { left: 12px; width: 280px }
+          .mapFull { height: 70vh }
+          h1 { font-size: 26px }
+        }
+      `}</style>
+    </>
   );
 }
